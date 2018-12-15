@@ -3,6 +3,7 @@ package com.company;
 import com.google.common.collect.Lists;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 class Game {
@@ -11,7 +12,7 @@ class Game {
 
     private Set<List<Integer>> possibleGuesses;
     private Set<List<Integer>> remainingPossibilities;
-    private List<Integer> currentGuess = Arrays.asList(1, 1, 2, 2);
+    private List<Integer> nextGuess = Arrays.asList(1, 1, 2, 2);
 
     Game() {
         Integer[] arr = new Integer[] { 1, 2, 3, 4, 5, 6, 7, 8, 9 };
@@ -22,12 +23,12 @@ class Game {
     }
 
     void enterScore(int score) {
-        this.remainingPossibilities = this.removeCodesWithSameScore(this.remainingPossibilities, currentGuess, score);
-        this.currentGuess = minMax();
+        this.remainingPossibilities = this.removeCodesWithSameScore(this.remainingPossibilities, nextGuess, score);
+        this.nextGuess = minMax();
     }
 
     String getNextGuess() {
-        return currentGuess.toString();
+        return nextGuess.toString();
     }
 
     private int scoreGuess(List<Integer> guess, List<Integer> code) {
@@ -68,10 +69,12 @@ class Game {
     }
 
     private List<Integer> minMax() {
-        HashMap<List<Integer>, Integer> minimums = new HashMap<>();
-        for (List<Integer> guess : possibleGuesses) {
+        Map<List<Integer>, Integer> minimums = new ConcurrentHashMap<>();
+
+        possibleGuesses.parallelStream().forEach((guess) -> {
             minimums.put(guess, minimumNumberRemoved(guess));
-        }
+        });
+
         int max = Collections.max(minimums.entrySet(), Map.Entry.comparingByValue()).getValue();
 
         List<Map.Entry<List<Integer>, Integer>> maxes = minimums.entrySet()
@@ -100,15 +103,15 @@ class Game {
     public static void main(String[] args) {
         // testing
         Game g = new Game();
-        List<Integer> correctAnswer = Arrays.asList(1, 6, 7, 4);
+        List<Integer> correctAnswer = Arrays.asList(1, 2, 4, 9);
 
-        while (!g.currentGuess.equals(correctAnswer)) {
-            System.out.println(String.format("guessing %s", g.currentGuess));
-            int score = g.scoreGuess(g.currentGuess, correctAnswer);
+        while (!g.nextGuess.equals(correctAnswer)) {
+            System.out.println(String.format("guessing %s", g.nextGuess));
+            int score = g.scoreGuess(g.nextGuess, correctAnswer);
             System.out.println(String.format("score was %d", score));
             g.enterScore(score);
         }
-        System.out.println(String.format("guessed correctly %s", g.currentGuess));
+        System.out.println(String.format("guessed correctly %s", g.nextGuess));
     }
 }
 
